@@ -211,12 +211,20 @@ test('currency display, mobile layout, loading and empty states', async ({ page,
   await page.screenshot({ path: 'test-results/inventory-mobile.png', fullPage: true })
   const mobileAxe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()
   expect(mobileAxe.violations).toEqual([])
+  // Hold the response until the loading state has actually been observed.
+  // A fixed delay can elapse before reload finishes on a slower Docker host.
+  let releaseList = () => {}
+  const pendingList = new Promise<void>((resolve) => { releaseList = resolve })
   await page.route((url) => url.pathname === '/api/books', async (route) => {
-    await new Promise((resolve) => setTimeout(resolve, 500))
+    await pendingList
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ count: 0, results: [], next: null, previous: null }) })
   })
   await page.route('**/api/books/summary', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ total_titles: 0, inventory_value_usd: '0.00', low_stock_titles: 0, out_of_stock_titles: 0, categories: [], local_currency: 'EUR', margin_percentage: 40, last_updated_at: null }) }))
-  await page.reload()
-  await expect(page.getByRole('status', { name: 'Loading inventory', exact: true })).toBeVisible()
+  await page.reload({ waitUntil: 'domcontentloaded' })
+  try {
+    await expect(page.getByRole('status', { name: 'Loading inventory', exact: true })).toBeVisible()
+  } finally {
+    releaseList()
+  }
   await expect(page.getByRole('heading', { name: 'Your inventory is empty', exact: true })).toBeVisible()
 })

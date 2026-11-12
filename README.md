@@ -1,54 +1,133 @@
-# Bookstore Inventory System
+# Sistema de inventario de librería
 
-Inventory monorepo for the Nextep technical exam. The Django REST Framework
-backend implements the Book model, CRUD, category search, low-stock filtering
-and exchange-rate pricing with a 40% markup. PostgreSQL 15 stores the data.
-The frontend is a complete React + TypeScript + Vite SPA with CSS Modules,
-TanStack Query, responsive table/cards, validated forms and live pricing dialogs.
+Proyecto para la prueba técnica de Nextep Innovation. Incluye una API REST con
+Django REST Framework, PostgreSQL 15 y una aplicación web de página única (SPA)
+con React, TypeScript, Vite, CSS Modules y TanStack Query.
 
-## Requirements and startup
+Permite gestionar libros, consultar existencias y calcular el precio de venta
+sugerido con una tasa de cambio externa y un recargo comercial del 40 %.
+La interfaz incluye tabla y tarjetas adaptables, búsqueda, filtros, formularios
+validados, temas claro/oscuro y un desglose del cálculo de precios.
 
-Install Docker Desktop with Docker Compose support and start its engine. The
-backend image uses Python 3.12 and installs `bookstore-inventory-api/requirements.txt`.
-Python 3.11+ is supported for local backend development.
+## Requisitos previos
 
-From the repository root in PowerShell, create the environment file only if it
-does not already exist:
+- Git para clonar el repositorio.
+- Docker Desktop con Docker Compose y el motor de Docker en ejecución.
+- Puertos `5173` y `8000` disponibles.
+- Conexión a Internet para descargar imágenes y dependencias, y consultar las
+  tasas de cambio. Si el proveedor de tasas falla, se utiliza el respaldo configurado.
+
+Con Docker no es necesario instalar Python, Node.js ni PostgreSQL en el equipo:
+los contenedores usan Python 3.12, Node.js 24 y PostgreSQL 15. Para desarrollar
+fuera de Docker se necesita Python 3.11 o superior, Node.js 24 y una instancia
+de PostgreSQL accesible.
+
+## Instalación y ejecución
+
+Clonar el [repositorio de GitHub](https://github.com/AleGarofalo/Prueba-Nextep):
+
+```powershell
+git clone https://github.com/AleGarofalo/Prueba-Nextep.git
+cd Prueba-Nextep
+```
+
+Desde la raíz del proyecto, crear `.env` solo si todavía no existe:
 
 ```powershell
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 ```
 
-Replace the placeholder database password and `DJANGO_SECRET_KEY` in `.env`.
-The existing `POSTGRES_DB`, `POSTGRES_USER` and `POSTGRES_PASSWORD` names remain
-supported. New environment files use `DB_NAME`, `DB_USER` and `DB_PASSWORD`;
-nonempty `DB_*` values take precedence in both Django and Compose.
+En macOS o Linux, el comando equivalente es:
+
+```sh
+test -f .env || cp .env.example .env
+```
+
+Editar `.env` y reemplazar los valores de ejemplo de `DB_PASSWORD` y
+`DJANGO_SECRET_KEY`. Para Docker, mantener `DB_HOST=db`. El archivo `.env` no se
+incluye en Git; `.env.example` documenta las variables necesarias.
+Se conservan las variables antiguas `POSTGRES_DB`, `POSTGRES_USER` y
+`POSTGRES_PASSWORD`; los valores no vacíos de `DB_NAME`, `DB_USER` y `DB_PASSWORD`
+tienen prioridad tanto en Django como en Compose.
+
+Iniciar todo el proyecto:
 
 ```powershell
 docker compose up --build
 ```
 
-The backend waits for PostgreSQL, applies pending migrations, then starts Django
-at http://localhost:8000. The frontend starts at http://localhost:5173 and proxies
-API requests to Django. PostgreSQL data is stored in the `postgres_data` volume.
-Stop containers while retaining data with `docker compose down`.
+El backend espera a que PostgreSQL esté listo, aplica las migraciones pendientes
+y arranca Django. El frontend instala las dependencias mediante `npm ci` y
+arranca Vite; la primera ejecución puede tardar unos minutos.
 
-For a backend container that was already running when code changed:
+| Servicio | Dirección |
+| --- | --- |
+| Aplicación web | http://localhost:5173 |
+| API REST | http://localhost:8000/books |
+| Raíz alternativa de la API | http://localhost:8000/api/inventory/ |
+
+En ejecuciones posteriores basta con `docker compose up`. Usar `--build` cuando
+cambie el Dockerfile o las dependencias del backend. Añadir `-d` permite ejecutar
+los servicios en segundo plano. Para consultar los registros:
 
 ```powershell
-docker compose exec backend python manage.py migrate
-docker compose exec backend python manage.py check
-docker compose exec backend python manage.py test inventory
+docker compose logs -f backend frontend
 ```
 
-Migration `0002_align_exam_book_fields` renames `price` to `cost_usd` and `stock`
-to `stock_quantity`, retaining their values, book IDs and timestamps. It adds
-nullable `selling_price_local` and `supplier_country`, with an empty country for
-existing books whose origin is unknown. The existing initial migration is kept.
+Detener los servicios conservando la base de datos:
 
-## Book data and validation
+```powershell
+docker compose down
+```
 
-Create a book with the PDF's payload:
+Los datos se guardan en el volumen `postgres_data`. Las dependencias del frontend
+se guardan en `frontend_node_modules`. No es necesario activar perfiles de Compose.
+El frontend usa sondeo de archivos para detectar cambios en Windows con Docker.
+Esta configuración utiliza servidores de desarrollo y está destinada a ejecución local.
+
+## Datos de demostración
+
+Cargar 25 libros ficticios para probar la aplicación:
+
+```powershell
+docker compose exec backend python manage.py seed_demo_books
+```
+
+El comando crea los ISBN de demostración que falten y conserva los registros
+existentes, incluidas sus modificaciones y precios calculados. No duplica libros
+ni consulta el proveedor de tasas. No se ejecuta automáticamente al arrancar.
+
+Hay cinco libros por categoría: `Literatura Clásica`, `Ciencia`, `Tecnología`,
+`Historia` y `Ficción`. Cada categoría incluye existencias de 0, 5, 10, 11 y 25
+unidades. Los ISBN tienen dígitos de control válidos, pero los títulos, autores,
+costos y asociaciones con ISBN son ficticios.
+
+## Uso de la aplicación web
+
+1. Abrir http://localhost:5173 y consultar el catálogo en tabla o tarjetas.
+2. Usar la búsqueda por título, autor o ISBN, el filtro de categoría o el filtro
+   de existencias bajas. Los resultados se paginan en el servidor.
+3. Pulsar **New book**, completar los campos y guardar. La interfaz exige título
+   y autor de al menos dos caracteres, categoría, país, ISBN válido, costo positivo
+   con hasta dos decimales y existencias enteras no negativas.
+4. Abrir el detalle desde el título, editar un libro o eliminarlo con confirmación.
+5. Pulsar **Calculate price** para consultar la tasa, ver el desglose y guardar
+   el precio sugerido. **Recalculate** repite la operación; **Done** cierra el resultado.
+
+El ISBN no es un número arbitrario: debe tener 10 o 13 caracteres con un dígito
+de control correcto, y no puede estar repetido. Por ejemplo, `978-84-376-0494-7`
+es válido y se almacena como `9788437604947`. Para pruebas también puede usarse
+`9780999002506`, siempre que no exista ya en la base de datos. En libros reales,
+utilizar el ISBN impreso junto al código de barras.
+
+El selector EUR/USD/GBP/MXN convierte la visualización de los precios guardados;
+no cambia la moneda de almacenamiento. El cálculo siempre utiliza la moneda
+local configurada en el backend. La interfaz conserva el tema, la moneda de
+visualización y la vista preferida en el almacenamiento del navegador.
+
+## Modelo de datos y validaciones
+
+Ejemplo de datos basado en el PDF:
 
 ```json
 {
@@ -63,83 +142,82 @@ Create a book with the PDF's payload:
 }
 ```
 
-- `title` and `author` are required and cannot contain only whitespace.
-- `isbn` accepts ISBN-10 or ISBN-13, including formatted values with spaces or
-  hyphens. Separators are removed and an ISBN-10 check digit `x` becomes `X`
-  before checksum and uniqueness checks. The example is stored as `9788437604947`.
-- `cost_usd` is positive and has at most two decimal places.
-- `stock_quantity` is a nonnegative integer and defaults to zero.
-- `selling_price_local` starts as null and is read-only through the CRUD API.
-  Only the pricing action sets it. Changing `cost_usd` through the API clears an
-  old selling price so it can be recalculated.
-- `category` is optional. `supplier_country` is an uppercase two-letter country
-  code, or an empty string when unknown; lowercase input is normalized.
-- `id`, `created_at` and `updated_at` are read-only and automatically populated.
+- `title` y `author`: obligatorios; no admiten texto compuesto solo por espacios.
+- `isbn`: ISBN-10 o ISBN-13 válido y único. Antes de validar el formato, el dígito
+  de control y la unicidad, se eliminan espacios y guiones y se convierte `x` en `X`.
+- `cost_usd`: estrictamente positivo, con hasta dos decimales.
+- `stock_quantity`: entero no negativo; su valor inicial es cero.
+- `selling_price_local`: inicialmente `null` y de solo lectura en el CRUD.
+  Solo el cálculo de precios lo modifica. Cambiar `cost_usd` mediante la API
+  invalida el precio anterior y lo devuelve a `null` hasta recalcularlo.
+- `category`: opcional en la API. `supplier_country`: código de dos letras
+  mayúsculas o cadena vacía si se desconoce; se normalizan las minúsculas.
+  La interfaz exige ambos campos y ofrece países ISO 3166-1 alfa-2.
+- `id`, `created_at` y `updated_at`: de solo lectura y generados automáticamente.
 
-Money is returned as decimal strings to preserve precision. Normal model saves
-run `full_clean()`. Database constraints also enforce positive costs,
-nonnegative quantities and selling prices, and unique ISBNs. Bulk ORM operations
-bypass model validation and normalization, as in standard Django.
+Los importes se devuelven como cadenas decimales para conservar la precisión.
+Los guardados normales del modelo ejecutan `full_clean()`. La base de datos
+también impone costos positivos, existencias y precios no negativos, e ISBN únicos.
+Las operaciones masivas del ORM omiten los métodos de validación del modelo,
+como ocurre de forma habitual en Django.
 
-## API routes
+La migración `0002_align_exam_book_fields` renombra `price` a `cost_usd` y `stock`
+a `stock_quantity`, conservando los valores, identificadores y fechas. Añade
+`selling_price_local` y `supplier_country` sin eliminar la migración inicial.
 
-The canonical exam routes have no trailing slash:
+## Endpoints de la API
 
-| Method | Path | Success |
+Las rutas principales del examen no llevan barra final:
+
+| Método | Ruta | Respuesta correcta |
 | --- | --- | --- |
-| POST | `/books` | 201, created book |
-| GET | `/books` | 200, paginated books |
-| GET | `/books/{id}` | 200, book |
-| PUT | `/books/{id}` | 200, updated book |
-| PATCH | `/books/{id}` | 200, partial update |
-| DELETE | `/books/{id}` | 204, empty response |
-| GET | `/books/search?category=Literatura%20Cl%C3%A1sica` | 200, category results |
-| GET | `/books/low-stock?threshold=10` | 200, books at or below the threshold |
-| GET | `/books/summary` | 200, global inventory totals and categories |
-| GET | `/books/exchange-rate?currency=GBP` | 200, read-only local-to-display conversion |
-| POST | `/books/{id}/calculate-price` | 200, calculation saved and returned |
+| POST | `/books` | 201, libro creado |
+| GET | `/books` | 200, lista paginada |
+| GET | `/books/{id}` | 200, detalle del libro |
+| PUT | `/books/{id}` | 200, libro actualizado |
+| PATCH | `/books/{id}` | 200, actualización parcial adicional |
+| DELETE | `/books/{id}` | 204, sin contenido |
+| GET | `/books/search?category=Ciencia` | 200, resultados por categoría |
+| GET | `/books/low-stock?threshold=10` | 200, libros con existencias bajas |
+| POST | `/books/{id}/calculate-price` | 200, cálculo guardado y desglosado |
+| GET | `/books/summary` | 200, indicadores globales y categorías |
+| GET | `/books/exchange-rate?currency=GBP` | 200, conversión de visualización |
 
-The existing `/api/inventory/books/` URLs remain available as aliases, with their
-trailing slash, including the new search, low-stock and pricing actions. Both
-route families now use the exam's field names rather than `price` and `stock`.
-The prefixed API root remains at `/api/inventory/`.
+También se mantienen los alias `/api/inventory/books/` con barra final,
+incluidas las acciones de búsqueda, existencias bajas y cálculo. Ambas familias
+utilizan los campos del examen, `cost_usd` y `stock_quantity`.
 
-Lists, search and low-stock results return `count`, `next`, `previous` and
-`results`, ordered by book ID. The default page size is 20; `page_size` can raise
-it to a maximum of 100. Select a page with `page=2`.
+Los listados devuelven `count`, `next`, `previous` y `results`. La página tiene
+20 elementos por defecto; se puede elegir `page_size` hasta un máximo de 100
+y cambiar de página con `page=2`. La interfaz ofrece tamaños de 10, 25 y 50.
 
-Add `search=...` to any list endpoint to search titles, authors or normalized
-ISBNs across the complete inventory. Combine it with category and stock filters.
-Use `ordering=id` (default) or `ordering=-id` for server-side ID sorting.
-The summary endpoint always aggregates the entire inventory, independently of
-the current filters and pagination. It includes `local_currency` so clients can
-interpret persisted prices correctly.
+La categoría se compara completa sin distinguir mayúsculas y minúsculas.
+`/books/search` exige una categoría no vacía. El umbral predeterminado de
+existencias bajas es 10; incluye ese límite y admite cero. Un umbral inválido
+devuelve 400. Los filtros de categoría y existencias pueden combinarse.
 
-The exchange-rate endpoint returns a conversion factor from `LOCAL_CURRENCY`
-to the requested display currency, plus the actual source and snapshot timestamp.
-It does not save or modify book prices. The local currency returns factor `1`
-without a provider call. Other conversions use one USD rate snapshot; unavailable
-currencies return 400, and unavailable rates without a usable fallback return 503.
-
-Category matching ignores case and matches the whole category. The search action
-requires a nonempty `category`. The low-stock action defaults to `threshold=10`,
-includes the threshold boundary, and accepts zero. Invalid thresholds return 400.
-Category filters also work on the low-stock action.
-
-The regular list still supports combined query filters:
+El parámetro `search` busca títulos, autores o ISBN normalizados en todo el
+inventario. `ordering=id` ordena por ID ascendente y `ordering=-id`, descendente.
+Ejemplo de filtros combinados:
 
 ```text
-GET /books?category=Fiction&low_stock=true&threshold=5&page_size=10
+GET /books?category=Fiction&low_stock=true&threshold=5&search=book&page_size=10
 ```
 
-`low_stock` accepts `true`, `false`, `1` or `0`. Invalid data returns 400; missing
-books and nonexistent pages return 404. A pricing failure without a usable
-fallback returns 503. Unexpected server errors use HTTP 500. Model validation
-errors are translated to field errors or `non_field_errors` in HTTP 400 responses.
+`low_stock` acepta `true`, `false`, `1` o `0`. Los indicadores de `/books/summary`
+siempre abarcan todo el inventario, independientemente de los filtros y páginas;
+incluyen la moneda local, la valoración `sum(cost_usd * stock_quantity)` y los
+recuentos de títulos, existencias bajas y títulos agotados.
 
-## Usage examples
+`/books/exchange-rate` devuelve un factor de conversión desde `LOCAL_CURRENCY`
+hacia la moneda solicitada, su origen y la fecha de consulta. No modifica libros.
+La moneda local devuelve factor `1` sin consultar al proveedor; las demás
+conversiones utilizan una misma captura de tasas con base USD. Una moneda no
+admitida devuelve 400 y una tasa no disponible sin respaldo utilizable devuelve 503.
 
-In PowerShell, create, retrieve, update, calculate and delete a book:
+## Ejemplos de uso de la API
+
+Desde PowerShell, crear, consultar, actualizar, calcular y eliminar un libro:
 
 ```powershell
 $bookPayload = @{
@@ -152,20 +230,28 @@ $bookPayload = @{
     supplier_country = 'ES'
 } | ConvertTo-Json
 
-$createdBook = Invoke-RestMethod -Method Post -Uri 'http://localhost:8000/books' -ContentType 'application/json' -Body $bookPayload
+$createdBook = Invoke-RestMethod -Method Post -Uri 'http://localhost:8000/books' -ContentType 'application/json; charset=utf-8' -Body ([System.Text.Encoding]::UTF8.GetBytes($bookPayload))
 Invoke-RestMethod -Uri "http://localhost:8000/books/$($createdBook.id)"
-Invoke-RestMethod -Method Put -Uri "http://localhost:8000/books/$($createdBook.id)" -ContentType 'application/json' -Body $bookPayload
+Invoke-RestMethod -Method Put -Uri "http://localhost:8000/books/$($createdBook.id)" -ContentType 'application/json; charset=utf-8' -Body ([System.Text.Encoding]::UTF8.GetBytes($bookPayload))
 Invoke-RestMethod -Method Post -Uri "http://localhost:8000/books/$($createdBook.id)/calculate-price" -ContentType 'application/json' -Body '{}'
 Invoke-RestMethod -Uri 'http://localhost:8000/books/low-stock?threshold=10'
 Invoke-RestMethod -Method Delete -Uri "http://localhost:8000/books/$($createdBook.id)"
 ```
 
-Use an unused valid ISBN when creating the sample book.
+Usar un ISBN válido que todavía no exista. Para probar únicamente consultas:
 
-## Suggested selling price
+```text
+GET /books?page_size=5
+GET /books?page=2
+GET /books/search?category=Ciencia
+GET /books/low-stock?threshold=10
+GET /books/low-stock?threshold=0
+```
 
-The local currency defaults to EUR. The pricing action accepts an empty JSON
-body, or an optional matching `target_currency`:
+## Cálculo del precio sugerido
+
+La moneda local predeterminada es EUR. La acción admite un cuerpo JSON vacío
+o `target_currency` con la misma moneda configurada:
 
 ```http
 POST /books/1/calculate-price
@@ -174,17 +260,16 @@ Content-Type: application/json
 {"target_currency": "EUR"}
 ```
 
-Stored selling prices all use `LOCAL_CURRENCY`; a different requested currency
-returns 400. Configure a different local currency and its fallback rate together
-before calculating prices, and recalculate existing prices if that configuration
-changes. Supplier country is independent of the local currency.
+El servicio consulta `https://api.exchangerate-api.com/v4/latest/USD`, toma el
+costo USD actual del libro, lo convierte y aplica el recargo del 40 %:
 
-The service fetches USD rates from
-`https://api.exchangerate-api.com/v4/latest/USD`, converts `cost_usd`, and applies
-a fixed 40% markup. Decimal arithmetic retains the unrounded conversion for the
-markup; displayed amounts are rounded to two places with `ROUND_HALF_UP`.
+```text
+precio sugerido = cost_usd × tasa USD→moneda local × 1.40
+```
 
-For the PDF's example rate of `0.85`, the response contains:
+Se utiliza aritmética decimal sin redondear el costo convertido antes de aplicar
+el recargo. Los importes mostrados se redondean a dos decimales con `ROUND_HALF_UP`.
+Con la tasa de ejemplo `0.85` del PDF, la respuesta incluye:
 
 ```json
 {
@@ -199,134 +284,181 @@ For the PDF's example rate of `0.85`, the response contains:
 }
 ```
 
-The response additionally includes `rate_source`, `rates_fetched_at`,
-`is_fallback`, `provider` and `provider_url`. `calculation_timestamp` describes
-this calculation, while `rates_fetched_at` describes the rate snapshot.
+También se devuelven `rate_source`, `rates_fetched_at`, `is_fallback`, `provider`
+y `provider_url`. `calculation_timestamp` indica cuándo se calculó el precio;
+`rates_fetched_at`, cuándo se consultó la captura de tasas.
 
-The result is saved atomically to `selling_price_local`, and `updated_at` is
-refreshed. Rates are fetched before locking the book; the calculation then uses
-its current saved cost. The response and subsequent GET return the saved price.
+El resultado se guarda de forma atómica en `selling_price_local`, actualizando
+`updated_at`. La consulta externa ocurre antes de bloquear el registro; el cálculo
+utiliza el costo vigente del libro una vez bloqueado. Un GET posterior devuelve
+el mismo precio guardado.
 
-### Rate failures and defaults
+Todos los precios persistidos usan `LOCAL_CURRENCY`. Solicitar otra moneda en
+el cálculo devuelve 400. Si se cambia esa configuración, también se debe ajustar
+su respaldo y recalcular los precios existentes. El país del proveedor del libro
+es independiente de la moneda local.
 
-HTTP failures, timeouts, connection errors, malformed JSON and invalid rates are
-handled with these sources:
+### Fallos del proveedor y tasas de respaldo
 
-- `live`: valid rates fetched from the provider.
-- `cache`: a validated snapshot fetched less than one hour ago.
-- `stale_cache`: during an outage, a validated snapshot less than 24 hours old.
-- `default`: during an outage without a usable snapshot, the configured default
-  rate for the local currency. This default is never cached as a live rate.
-- `identity`: USD-to-USD uses 1; the 40% markup still applies.
+Se controlan errores HTTP, tiempos de espera, fallos de conexión, JSON mal formado
+y tasas inválidas. El origen utilizado queda identificado en la respuesta:
 
-Both stale-cache and default-rate responses set `is_fallback=true`. Default and
-identity rates have no provider fetch timestamp. If neither a provider rate nor
-the configured fallback can produce a supported price, return 503 without saving.
+- `live`: tasas válidas recién consultadas al proveedor.
+- `cache`: captura válida con menos de una hora de antigüedad.
+- `stale_cache`: durante una caída, captura válida de menos de 24 horas.
+- `default`: tasa de respaldo configurada cuando no hay una captura utilizable.
+  No se almacena en caché como si fuera una tasa del proveedor.
+- `identity`: conversión USD a USD con tasa 1; se aplica igualmente el recargo.
 
-The demo EUR fallback of **0.85** comes from the exam example and is not a current
-market quote. The local currency and fallback can be set in `.env`:
+Las fuentes `stale_cache` y `default` devuelven `is_fallback=true`. Las fuentes
+`default` e `identity` no tienen fecha de consulta al proveedor. Si ninguna tasa
+permite obtener un precio compatible, se devuelve 503 sin guardar un precio nuevo.
 
-| Variable | Default | Meaning |
+El respaldo EUR de **0.85** procede del ejemplo del examen; no es una cotización
+actual. La configuración se puede cambiar en `.env`:
+
+| Variable | Valor predeterminado | Uso |
 | --- | --- | --- |
-| `LOCAL_CURRENCY` | `EUR` | Currency of all persisted local selling prices |
-| `EXCHANGE_RATE_DEFAULT_RATE` | `0.85` for EUR; `1` for USD | Emergency USD-to-local rate |
-| `EXCHANGE_RATE_API_URL` | `https://api.exchangerate-api.com/v4/latest/USD` | USD rates endpoint |
-| `EXCHANGE_RATE_API_TIMEOUT` | `10` | Connection/read timeout in seconds |
-| `EXCHANGE_RATE_CACHE_TTL` | `3600` | Fresh-cache window in seconds |
-| `EXCHANGE_RATE_FALLBACK_TTL` | `86400` | Maximum cached snapshot age in seconds |
+| `LOCAL_CURRENCY` | `EUR` | Moneda de los precios de venta guardados |
+| `EXCHANGE_RATE_DEFAULT_RATE` | `0.85` para EUR; `1` para USD | Respaldo USD a moneda local |
+| `EXCHANGE_RATE_API_URL` | `https://api.exchangerate-api.com/v4/latest/USD` | Proveedor de tasas con base USD |
+| `EXCHANGE_RATE_API_TIMEOUT` | `10` | Tiempo de espera de conexión/lectura, en segundos |
+| `EXCHANGE_RATE_CACHE_TTL` | `3600` | Vigencia de la caché reciente, en segundos |
+| `EXCHANGE_RATE_FALLBACK_TTL` | `86400` | Antigüedad máxima de la captura de respaldo, en segundos |
+| `VITE_API_URL` | `/api` | Prefijo del frontend que Vite redirige a Django |
 
-For a currency other than EUR or USD, explicitly configure its fallback rate.
-Timeouts, rates and durations must be positive and finite; the fallback window
-must be at least the fresh-cache window. An empty endpoint URL uses the default.
-Changing container environment variables requires recreating the backend
-container, for example with `docker compose up -d --force-recreate backend`.
-
-Django's default cache is in memory per process and resets when that process
-restarts. The configured default rate still supports calculations after restart
-if the external API is unavailable. No API key is required for the public API.
-Rates and attribution: [ExchangeRate-API](https://www.exchangerate-api.com/docs/free).
-A client displaying converted prices should display the attribution link in
-`provider_url`. The provider refreshes its data daily.
-
-## Postman collection
-
-Import [the exported collection](bookstore-inventory-api/postman/bookstore-inventory.postman_collection.json)
-into Postman. Set `base_url`, `isbn`, `category` and `currency` in its collection
-variables; the defaults target http://localhost:8000 and EUR. Use an unused valid
-ISBN. Run requests in order: the collection saves the created ID, exercises CRUD,
-category search, low stock and calculation, verifies the saved selling price,
-then deletes only the created demo book. It also includes validation, 404 and
-prefixed-route checks. Request scripts assert expected status codes and results.
-
-The test suite exercises this exported request sequence on a separate test
-database with mocked exchange rates, and verifies the PDF's pricing example,
-normalization, fallback behavior and migration preservation.
-
-## Demo data for manual testing
-
-Load 25 fictional books into the development database with:
+Para otra moneda local debe configurarse expresamente su tasa de respaldo.
+Las tasas y tiempos deben ser positivos y finitos; la ventana de respaldo debe
+ser al menos igual a la de caché reciente. Una URL vacía utiliza el proveedor
+predeterminado. Cambiar variables del contenedor requiere recrearlo, por ejemplo:
 
 ```powershell
-docker compose exec backend python manage.py seed_demo_books
+docker compose up -d --force-recreate backend
 ```
 
-The command creates missing demo ISBNs and leaves existing records unchanged,
-including edits you make to seeded books. Re-running it does not duplicate books
-or reset costs, quantities or calculated prices. It does not call the exchange
-rate provider or run automatically during container startup.
+La caché predeterminada de Django reside en memoria por proceso y se reinicia
+con este. La tasa de respaldo sigue disponible después de reiniciar. La API
+pública de tasas no necesita clave. La aplicación muestra la atribución del
+proveedor: [ExchangeRate-API](https://www.exchangerate-api.com/docs/free).
 
-The dataset has five books in each of these categories: `Literatura Clásica`,
-`Ciencia`, `Tecnología`, `Historia` and `Ficción`. Each category includes stock
-quantities of 0, 5, 10, 11 and 25. All ISBNs have valid checksums, but the titles,
-authors, costs and ISBN associations are fictional test data.
+## Manejo de errores
 
-Try these requests in a browser or Postman:
+| HTTP | Situación | Comportamiento de la interfaz |
+| --- | --- | --- |
+| 400 | Validación, ISBN duplicado o parámetros inválidos | Errores por campo y notificación, conservando el formulario |
+| 404 | Libro o página inexistente | Notificación y actualización del inventario |
+| 500 | Error inesperado del servidor | Alerta con opción de reintentar |
+| 503 | Tasas no disponibles sin respaldo utilizable | Aviso en el cálculo y explicación de que no se guardó un precio nuevo |
 
-```text
-GET /books?page_size=5
-GET /books?page=2
-GET /books/search?category=Ciencia
-GET /books/low-stock?threshold=10
-GET /books/low-stock?threshold=0
-```
+Si se utiliza correctamente una tasa de respaldo, el cálculo devuelve 200 y la
+interfaz muestra un aviso de su origen. Una respuesta 503 no se presenta como
+un cálculo exitoso. También se gestionan errores de conexión y tiempos de espera,
+estados de carga, botones en proceso y listados vacíos.
 
-Use a returned book ID for `GET /books/{id}` and
-`POST /books/{id}/calculate-price` with body `{}`. Selling prices start as null
-and are populated when that action is called. Live rates can differ from the
-PDF's example; `rate_source` and `is_fallback` identify the rate actually used.
-The exported Postman collection uses a separate ISBN, so its create/delete
-sequence does not remove these 25 demo records.
+## Colección de Postman
 
-## Development structure
+Importar la [colección exportada](bookstore-inventory-api/postman/bookstore-inventory.postman_collection.json).
+Configurar sus variables `base_url`, `isbn`, `category` y `currency`; por defecto
+apuntan a http://localhost:8000 y EUR. El ISBN debe ser válido y no estar utilizado.
 
-- `bookstore-inventory-api/config/`: Django settings and root routes.
-- `inventory/models.py`: persistence, constraints and model validation.
-- `inventory/serializers.py`: API payload validation and normalization.
-- `inventory/views.py` and `inventory/urls.py`: controllers and routes.
-- `inventory/services.py`: rate integration, calculations and price persistence.
-- `inventory/validators.py`: reusable ISBN validation and normalization.
-- `inventory/tests/`: model, API, integration, collection and migration tests.
+Ejecutar las peticiones en orden. La colección guarda el ID creado, prueba el
+CRUD del examen, los filtros, el cálculo y su persistencia; después elimina
+únicamente el libro que acaba de crear. Incluye validación, consulta de un ID
+inexistente, alias de rutas, indicadores y conversión de visualización.
+Sus scripts verifican códigos HTTP y resultados. El ISBN predeterminado está
+separado de los usados por los 25 libros de demostración.
 
-Local Python commands load the root `.env`. After installing the requirements
-into the root `.venv`, run `./.venv/Scripts/python.exe ./bookstore-inventory-api/manage.py check`.
-Running Django outside Docker requires an accessible PostgreSQL instance and
-the corresponding `DB_HOST` and `DB_PORT`. `DEBUG` and `ALLOWED_HOSTS` are loaded
-from the environment, with the older `DJANGO_` names retained as fallbacks.
-Local Vite origins are allowed by default through CORS.
+## Pruebas y comprobaciones
 
-The regular Docker command starts the database, backend and frontend together:
+Con Docker en ejecución, desde la raíz:
 
 ```powershell
-docker compose up --build
+docker compose config --quiet
+docker compose exec backend python manage.py check
+docker compose exec backend python manage.py migrate --check
+docker compose exec backend python manage.py makemigrations --check --dry-run
+docker compose exec backend python manage.py test inventory --noinput
 ```
 
-The frontend uses http://localhost:5173, installs its lockfile with `npm ci`, and
-keeps dependencies in the `frontend_node_modules` volume. Django's development
-server and this Compose configuration are intended for local development.
-The Compose frontend uses file polling for reliable updates on Windows bind mounts.
+Las pruebas del backend utilizan una base de datos de prueba independiente y
+simulan las respuestas del proveedor externo. Cubren modelo, restricciones,
+CRUD, contrato del PDF, filtros, paginación, tasas, respaldo, persistencia,
+conservación de datos en migraciones, datos de demostración y colección de Postman.
 
-See [the frontend guide](frontend/README.md) for local setup, API configuration,
-browser workflows and automated tests. `VITE_API_URL` defaults to `/api`; Vite
-forwards that prefix to Django's slashless routes. Display currencies (EUR, USD,
-GBP and MXN) change the presentation only. The pricing dialog always calculates
-and saves in the backend's configured `LOCAL_CURRENCY`.
+Desde `frontend/`, con las dependencias instaladas:
+
+```powershell
+npm ci
+npm test
+npm run build
+npm run test:e2e
+```
+
+`npm run build` comprueba TypeScript y genera la compilación. Las pruebas de
+navegador requieren la aplicación en http://localhost:5173 y los datos de
+demostración en su estado inicial. Crean y eliminan sus propios libros; no borran
+los libros existentes. En Windows usan Microsoft Edge instalado; en otros
+sistemas se debe ejecutar antes `npx playwright install chromium`.
+Véase la [guía del frontend](frontend/README.md) para los detalles de las pruebas.
+
+## Desarrollo sin Docker
+
+Configurar una instancia de PostgreSQL accesible y ajustar `DB_HOST`, `DB_PORT`
+y sus credenciales en `.env`. El nombre `db` funciona dentro de Compose; fuera
+de él se debe utilizar la dirección real de PostgreSQL. El servicio de base de
+datos de Compose no publica un puerto hacia el equipo anfitrión por defecto.
+
+Ejemplo para el backend en PowerShell, desde la raíz:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r bookstore-inventory-api/requirements.txt
+.\.venv\Scripts\python.exe bookstore-inventory-api/manage.py migrate
+.\.venv\Scripts\python.exe bookstore-inventory-api/manage.py runserver
+```
+
+Los comandos locales de Django cargan el `.env` de la raíz. `DEBUG` y
+`ALLOWED_HOSTS` se leen del entorno; se conservan las alternativas antiguas con
+prefijo `DJANGO_`. CORS admite los orígenes locales de Vite de forma predeterminada.
+Para iniciar el frontend localmente, seguir la [guía correspondiente](frontend/README.md).
+
+## Estructura del proyecto
+
+- `bookstore-inventory-api/config/`: configuración de Django y rutas raíz.
+- `bookstore-inventory-api/inventory/models.py`: persistencia y validación del modelo.
+- `bookstore-inventory-api/inventory/serializers.py`: validación de peticiones y respuestas.
+- `bookstore-inventory-api/inventory/views.py` y `urls.py`: controladores y rutas.
+- `bookstore-inventory-api/inventory/services.py`: tasas externas y cálculo de precios.
+- `bookstore-inventory-api/inventory/validators.py`: validación y normalización de ISBN.
+- `bookstore-inventory-api/inventory/tests/`: pruebas automatizadas del backend.
+- `bookstore-inventory-api/postman/`: colección exportada para probar la API.
+- `frontend/src/`: SPA, componentes, cliente HTTP, estado y estilos.
+- `frontend/tests/`: pruebas unitarias y flujos de navegador.
+- `docker-compose.yml`: ejecución conjunta de los tres servicios.
+
+## Cobertura de la prueba técnica
+
+Revisión realizada contra las cinco páginas de «Nextep - Prueba Técnica -
+Desarrollador Full stack.pdf». La especificación visual adicional se utiliza
+para el diseño de la SPA; no sustituye los requisitos del examen.
+
+| Requisito del examen | Implementación o evidencia |
+| --- | --- |
+| Carpeta `bookstore-inventory-api`, framework e historial inicial | Backend Django y commits existentes en Git |
+| Modelo `Book` con todos los campos del ejemplo | `inventory/models.py` y migraciones |
+| POST, GET de lista/detalle, PUT y DELETE | `inventory/views.py`, rutas `/books` y pruebas del contrato |
+| Búsqueda por categoría y existencias bajas, opcionales | `/books/search` y `/books/low-stock` |
+| Integración externa y recargo del 40 % | `inventory/services.py`, `/books/{id}/calculate-price` |
+| Guardar `selling_price_local` y devolver el desglose | Guardado atómico y pruebas de persistencia |
+| Costo positivo, existencias no negativas e ISBN válido y único | Modelo, serializador, restricciones y formulario |
+| Tasa por defecto cuando falla el proveedor | Respaldo configurable y pruebas de errores del proveedor |
+| Manejo de 400, 404, 500 y 503 | API, cliente HTTP, formularios, avisos y reintentos |
+| SPA con catálogo y paginación del backend | Tabla/tarjetas, controles de página y tamaño |
+| Filtros de categoría y existencias bajas | Barra de filtros y llamadas a las acciones de la API |
+| Formularios POST/PUT y eliminación con confirmación | Modales de creación, edición y eliminación |
+| Acción explícita de cálculo y desglose del servidor | Modal de precios con costo, tasa, recargo y precio final |
+| Indicadores de carga y notificaciones | Estados de carga, botones en proceso, notificaciones y alertas |
+| README con requisitos, instalación y ejemplos | Este documento y la guía del frontend |
+| Colección de Postman exportada | Archivo JSON en `bookstore-inventory-api/postman/` |
+| Repositorio con código completo | [Repositorio de GitHub](https://github.com/AleGarofalo/Prueba-Nextep) |
+| Dockerización, adicional valorado | Dockerfile del backend y Compose para los tres servicios |
