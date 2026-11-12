@@ -53,6 +53,20 @@ class StockThresholdSerializer(serializers.Serializer):
         return super().to_internal_value(data)
 
 
+class DisplayCurrencySerializer(serializers.Serializer):
+    currency = serializers.CharField(min_length=3, max_length=3, required=False)
+
+    def validate_currency(self, value: str) -> str:
+        value = value.upper()
+        if not re.fullmatch(r"[A-Z]{3}", value):
+            raise serializers.ValidationError("Use a three-letter currency code.")
+        return value
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        attrs.setdefault("currency", settings.LOCAL_CURRENCY)
+        return attrs
+
+
 class CategorySearchSerializer(serializers.Serializer):
     category = serializers.CharField(max_length=100)
 

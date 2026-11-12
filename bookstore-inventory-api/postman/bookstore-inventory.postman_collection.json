@@ -462,6 +462,56 @@
           }
         }
       ]
+    },
+    {
+      "name": "15 Global dashboard summary",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/books/summary"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"Summary contains global inventory metrics\", function () { const data = pm.response.json(); pm.expect(data.total_titles).to.be.a(\"number\"); pm.expect(data.inventory_value_usd).to.be.a(\"string\"); pm.expect(data.categories).to.be.an(\"array\"); pm.expect(data.local_currency).to.be.a(\"string\"); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "16 Display currency conversion",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/books/exchange-rate?currency={{currency}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"Display conversion is positive and identifies its source\", function () { const data = pm.response.json(); pm.expect(Number(data.conversion_rate)).to.be.above(0); pm.expect(data.currency).to.eql(pm.collectionVariables.get(\"currency\").toUpperCase()); pm.expect(data.rate_source).to.be.a(\"string\"); });"
+            ]
+          }
+        }
+      ]
     }
   ]
 }

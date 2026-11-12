@@ -3,7 +3,8 @@
 Inventory monorepo for the Nextep technical exam. The Django REST Framework
 backend implements the Book model, CRUD, category search, low-stock filtering
 and exchange-rate pricing with a 40% markup. PostgreSQL 15 stores the data.
-The frontend is initialized with React + Vite + Tailwind CSS + TanStack Query.
+The frontend is a complete React + TypeScript + Vite SPA with CSS Modules,
+TanStack Query, responsive table/cards, validated forms and live pricing dialogs.
 
 ## Requirements and startup
 
@@ -28,7 +29,8 @@ docker compose up --build
 ```
 
 The backend waits for PostgreSQL, applies pending migrations, then starts Django
-at http://localhost:8000. PostgreSQL data is stored in the `postgres_data` volume.
+at http://localhost:8000. The frontend starts at http://localhost:5173 and proxies
+API requests to Django. PostgreSQL data is stored in the `postgres_data` volume.
 Stop containers while retaining data with `docker compose down`.
 
 For a backend container that was already running when code changed:
@@ -93,6 +95,8 @@ The canonical exam routes have no trailing slash:
 | DELETE | `/books/{id}` | 204, empty response |
 | GET | `/books/search?category=Literatura%20Cl%C3%A1sica` | 200, category results |
 | GET | `/books/low-stock?threshold=10` | 200, books at or below the threshold |
+| GET | `/books/summary` | 200, global inventory totals and categories |
+| GET | `/books/exchange-rate?currency=GBP` | 200, read-only local-to-display conversion |
 | POST | `/books/{id}/calculate-price` | 200, calculation saved and returned |
 
 The existing `/api/inventory/books/` URLs remain available as aliases, with their
@@ -103,6 +107,19 @@ The prefixed API root remains at `/api/inventory/`.
 Lists, search and low-stock results return `count`, `next`, `previous` and
 `results`, ordered by book ID. The default page size is 20; `page_size` can raise
 it to a maximum of 100. Select a page with `page=2`.
+
+Add `search=...` to any list endpoint to search titles, authors or normalized
+ISBNs across the complete inventory. Combine it with category and stock filters.
+Use `ordering=id` (default) or `ordering=-id` for server-side ID sorting.
+The summary endpoint always aggregates the entire inventory, independently of
+the current filters and pagination. It includes `local_currency` so clients can
+interpret persisted prices correctly.
+
+The exchange-rate endpoint returns a conversion factor from `LOCAL_CURRENCY`
+to the requested display currency, plus the actual source and snapshot timestamp.
+It does not save or modify book prices. The local currency returns factor `1`
+without a provider call. Other conversions use one USD rate snapshot; unavailable
+currencies return 400, and unavailable rates without a usable fallback return 503.
 
 Category matching ignores case and matches the whole category. The search action
 requires a nonempty `category`. The low-stock action defaults to `threshold=10`,
@@ -297,12 +314,19 @@ the corresponding `DB_HOST` and `DB_PORT`. `DEBUG` and `ALLOWED_HOSTS` are loade
 from the environment, with the older `DJANGO_` names retained as fallbacks.
 Local Vite origins are allowed by default through CORS.
 
-To start the existing frontend with Docker, enable its profile:
+The regular Docker command starts the database, backend and frontend together:
 
 ```powershell
-docker compose --profile frontend up --build
+docker compose up --build
 ```
 
 The frontend uses http://localhost:5173, installs its lockfile with `npm ci`, and
 keeps dependencies in the `frontend_node_modules` volume. Django's development
 server and this Compose configuration are intended for local development.
+The Compose frontend uses file polling for reliable updates on Windows bind mounts.
+
+See [the frontend guide](frontend/README.md) for local setup, API configuration,
+browser workflows and automated tests. `VITE_API_URL` defaults to `/api`; Vite
+forwards that prefix to Django's slashless routes. Display currencies (EUR, USD,
+GBP and MXN) change the presentation only. The pricing dialog always calculates
+and saves in the backend's configured `LOCAL_CURRENCY`.

@@ -1,0 +1,23 @@
+.header { background: var(--surface-card); border-bottom: 1px solid var(--border-default); }
+.headerInner { max-width: 1536px; margin: 0 auto; padding: 18px 40px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.brand { display: flex; align-items: center; gap: 12px; font-size: 18px; font-weight: 700; letter-spacing: -.6px; white-space: nowrap; }
+.brandMark { height: 38px; width: 38px; border-radius: 10px; display: grid; place-items: center; background: var(--brand-gradient); color: #fff; box-shadow: 0 3px 7px #4f46e51c; }
+.brandDot { color: var(--brand-ink); }
+.brandBookstore { font-weight: 500; }
+.version { background: var(--brand-tint); color: var(--brand-ink); border: 1px solid var(--border-default); border-radius: 5px; font-size: 9px; line-height: 17px; letter-spacing: .3px; font-weight: 600; padding: 1px 6px; margin-left: 4px; }
+.controls { display: flex; align-items: center; gap: 22px; }
+.status { display: inline-flex; align-items: center; gap: 7px; color: var(--success-ink); font-size: 11px; font-weight: 500; white-space: nowrap; }
+.dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.online .dot { box-shadow: 0 0 0 4px var(--success-bg); animation: breathe 2.5s infinite; }
+.offline { color: var(--danger-ink); }
+.degraded { color: var(--warning-ink); }
+.checking { color: var(--text-secondary); }
+.currency { display: flex; align-items: center; gap: 8px; color: var(--text-secondary); }
+.currency label { font-size: 11px; }
+.currency select { background: var(--surface-card); color: var(--text-primary); font-size: 12px; font-weight: 600; border: 0; border-radius: 4px; padding: 6px 2px; cursor: pointer; }
+.headerActions { display: flex; gap: 3px; border-left: 1px solid var(--border-default); padding-left: 16px; }
+.skip { position: absolute; top: -100px; left: 12px; z-index: 100; padding: 12px; background: var(--surface-card); color: var(--text-primary); border: 2px solid var(--brand-ink); border-radius: 6px; }
+.skip:focus { top: 12px; }
+@keyframes breathe { 50% { box-shadow: 0 0 0 2px var(--success-bg); } }
+@media (max-width: 1024px) { .headerInner { padding: 16px 24px; } .version, .currency label { display: none; } .controls { gap: 15px; } }
+@media (max-width: 640px) { .headerInner { padding: 14px 16px; flex-wrap: wrap; gap: 12px; } .brand { font-size: 17px; gap: 9px; } .brandMark { width: 33px; height: 33px; } .controls { width: 100%; justify-content: space-between; gap: 8px; } .headerActions { margin-left: auto; padding-left: 10px; } .currency { margin-left: auto; } }

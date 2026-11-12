@@ -32,11 +32,14 @@ services:
       db:
         condition: service_healthy
 
-  # Enable after manually initializing the Vite application in ./frontend.
+  # Vite proxies browser API requests to Django on the Compose network.
   frontend:
     image: node:24-alpine
-    profiles: ["frontend"]
     working_dir: /app
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-/api}
+      API_PROXY_TARGET: http://backend:8000
+      CHOKIDAR_USEPOLLING: "true"
     command: ["sh", "-c", "npm ci && exec npm run dev -- --host 0.0.0.0 --port 5173"]
     volumes:
       - ./frontend:/app

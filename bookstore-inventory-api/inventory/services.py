@@ -54,6 +54,15 @@ class SuggestedPrice:
     rates_fetched_at: datetime | None
 
 
+@dataclass(frozen=True)
+class DisplayExchangeRate:
+    currency: str
+    local_currency: str
+    conversion_rate: Decimal
+    rate_source: Literal["live", "cache", "stale_cache", "identity", "default"]
+    rates_fetched_at: datetime | None
+
+
 def _parse_rates(payload: Any) -> dict[str, Decimal]:
     """Only accept positive, finite rates explicitly based on USD."""
     if not isinstance(payload, dict) or payload.get("base") != "USD":
@@ -173,6 +182,27 @@ def _calculate_with_fallback(cost_usd: Decimal, currency: str, rate: _ExchangeRa
 def calculate_suggested_price(cost_usd: Decimal, target_currency: str) -> SuggestedPrice:
     """Calculate USD cost conversion and 40% markup without saving a book."""
     return _calculate_with_fallback(cost_usd, target_currency, _get_exchange_rate(target_currency))
+
+
+def get_display_exchange_rate(currency: str) -> DisplayExchangeRate:
+    """Convert saved local prices for display without recalculating or saving books."""
+    local = settings.LOCAL_CURRENCY
+    if currency == local:
+        return DisplayExchangeRate(currency, local, Decimal("1"), "identity", None)
+    try:
+        snapshot, source = _get_rates()
+        rates, fetched_at = snapshot.rates, snapshot.fetched_at
+    except ExchangeRateUnavailable:
+        rates = {"USD": Decimal("1"), local: settings.EXCHANGE_RATE_DEFAULT_RATE}
+        if currency not in rates:
+            raise
+        source, fetched_at = "default", None
+    if currency not in rates or local not in rates:
+        raise UnsupportedCurrency(f"Unsupported display currency: {currency}.")
+    with localcontext() as context:
+        context.prec = 28
+        factor = rates[currency] / rates[local]
+    return DisplayExchangeRate(currency, local, factor, source, fetched_at)
 
 
 def calculate_and_save_book_price(book_id: int, target_currency: str) -> SuggestedPrice:
