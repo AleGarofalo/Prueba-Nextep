@@ -1,0 +1,56 @@
+@import '@fontsource/inter/latin-400.css';
+@import '@fontsource/inter/latin-500.css';
+@import '@fontsource/inter/latin-600.css';
+@import '@fontsource/inter/latin-700.css';
+@import '@fontsource/jetbrains-mono/latin-400.css';
+
+:root {
+  color-scheme: light;
+  --surface-canvas: light-dark(#f8fafc, #0b0f19);
+  --surface-card: light-dark(#fff, #151c2c);
+  --surface-subtle: light-dark(#f1f5f9, #1e293b);
+  --border-default: light-dark(#e2e8f0, #2a374f);
+  --text-primary: light-dark(#0f172a, #f8fafc);
+  --text-secondary: light-dark(#5b6b82, #a1adc0);
+  --text-placeholder: light-dark(#64748b, #a1adc0);
+  --brand-primary: light-dark(oklch(58% .23 277), oklch(68% .20 277));
+  --brand-ink: light-dark(#4f46e5, #a5b4fc);
+  --brand-button: light-dark(#4f46e5, #a5b4fc);
+  --on-brand: light-dark(#fff, #12172a);
+  --brand-tint: light-dark(#eef2ff, #242647);
+  --brand-gradient: linear-gradient(135deg, #4f46e5, #7c3aed);
+  --success-ink: light-dark(#047857, #6ee7b7);
+  --success-bg: light-dark(#ecfdf5, #12392f);
+  --warning-ink: light-dark(#92400e, #fcd34d);
+  --warning-bg: light-dark(#fffbeb, #352915);
+  --warning-border: light-dark(#fde68a, #66501c);
+  --danger-ink: light-dark(#b91c1c, #fca5a5);
+  --danger-bg: light-dark(#fef2f2, #40222b);
+  --danger-border: light-dark(#fecaca, #733b45);
+  --danger-button: #b91c1c;
+  --skeleton: light-dark(#e7edf4, #2b374f);
+  --shadow-card: 0 1px 3px #0f172a05, 0 1px 2px #0f172a03;
+  --shadow-modal: 0 25px 80px #0004;
+  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --space-xs: 4px; --space-sm: 8px; --space-md: 16px; --space-lg: 24px; --space-xl: 32px;
+  font-family: var(--font-body); font-synthesis: none; font-size: 14px; line-height: 1.5;
+  color: var(--text-primary); background: var(--surface-canvas);
+  text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased;
+}
+:root[data-theme=dark] { color-scheme: dark; }
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; }
+button, input, select, textarea { font: inherit; }
+button, a, input, select { -webkit-tap-highlight-color: transparent; }
+button:focus-visible, a:focus-visible, select:focus-visible { outline: 3px solid var(--brand-primary); outline-offset: 3px; }
+button { color: inherit; }
+a { color: var(--brand-ink); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+h1, h2, h3, p { margin: 0; }
+h1 { font-size: 28px; line-height: 1.2; font-weight: 700; letter-spacing: -.9px; }
+h2 { font-size: 20px; line-height: 1.3; font-weight: 600; letter-spacing: -.4px; }
+h3 { font-size: 16px; font-weight: 600; }
+button, select { touch-action: manipulation; }
+svg { flex-shrink: 0; }
+::selection { background: var(--brand-tint); color: var(--brand-ink); }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; } }

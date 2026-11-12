@@ -1,0 +1,12 @@
+.container { position: fixed; z-index: 1000; right: 24px; top: 88px; display: grid; gap: 10px; width: min(410px, calc(100vw - 32px)); }
+.toast { display: flex; align-items: center; gap: 12px; padding: 12px 10px 12px 14px; background: var(--surface-card); box-shadow: 0 8px 30px #0f172a1a; border: 1px solid var(--border-default); border-left: 3px solid var(--success-ink); border-radius: 10px; animation: arrive .2s ease-out; }
+.toast p { flex: 1; font-size: 13px; line-height: 1.5; color: var(--text-primary); }
+.symbol { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; flex-shrink: 0; background: var(--success-bg); color: var(--success-ink); }
+.error { border-left-color: var(--danger-ink); }
+.error .symbol { color: var(--danger-ink); background: var(--danger-bg); }
+.warning { border-left-color: var(--warning-ink); }
+.warning .symbol { color: var(--warning-ink); background: var(--warning-bg); }
+.info { border-left-color: var(--brand-ink); }
+.info .symbol { color: var(--brand-ink); background: var(--brand-tint); }
+@keyframes arrive { from { opacity: 0; transform: translateX(15px); } }
+@media (max-width: 640px) { .container { right: 16px; top: 16px; } }

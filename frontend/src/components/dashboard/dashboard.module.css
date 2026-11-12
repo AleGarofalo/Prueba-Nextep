@@ -1,0 +1,30 @@
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; }
+.kpi { background: var(--surface-card); border: 1px solid var(--border-default); border-radius: 12px; padding: 20px; box-shadow: var(--shadow-card); text-align: left; font: inherit; min-width: 0; }
+.kpiTop { min-height: 33px; display: flex; align-items: center; justify-content: space-between; gap: 10px; color: var(--text-secondary); font-weight: 500; font-size: 12px; }
+.kpiValue { font-size: 29px; line-height: 1.3; font-weight: 600; letter-spacing: -1.1px; margin-top: 10px; display: flex; align-items: baseline; gap: 8px; min-height: 38px; }
+.kpiValue > span { font-size: 12px; font-weight: 400; letter-spacing: 0; color: var(--text-secondary); }
+.kpi p { margin-top: 10px; color: var(--text-secondary); font-size: 11px; display: flex; align-items: center; gap: 5px; }
+.kpi p > span { display: inline-flex; align-items: center; }
+.kpi .marginTag { font-size: 9px !important; font-weight: 600 !important; padding: 3px 6px; border-radius: 4px; color: var(--brand-ink) !important; background: var(--brand-tint); letter-spacing: .25px !important; margin-left: auto; }
+.valuation { font-size: clamp(20px, 2.1vw, 29px); }
+.lowStockCard { cursor: pointer; transition: border-color .2s, background .2s; }
+.lowStockCard:hover, .selectedCard { border-color: var(--warning-border); background: var(--warning-bg); }
+.lowStockCaption > span { margin-left: auto; gap: 2px; color: var(--warning-ink); font-size: 10px; font-weight: 600; }
+.toolbar { display: flex; align-items: center; gap: 12px; padding: 18px 20px; border-bottom: 1px solid var(--border-default); }
+.search { flex: 1; min-width: 200px; position: relative; color: var(--text-secondary); }
+.search > svg { position: absolute; top: 12px; left: 12px; pointer-events: none; }
+.search input { color: var(--text-primary); background: var(--surface-card); font-size: 12px; border: 1px solid var(--border-default); border-radius: 8px; height: 40px; width: 100%; padding: 9px 35px; transition: border-color .15s, box-shadow .15s; }
+.search input:focus { outline: none; border-color: var(--brand-primary); box-shadow: 0 0 0 3px var(--brand-tint); }
+.search input::placeholder { color: var(--text-placeholder); }
+.search button { display: grid; place-items: center; position: absolute; right: 6px; top: 6px; width: 28px; height: 28px; border: 0; border-radius: 5px; color: var(--text-secondary); background: transparent; cursor: pointer; }
+.categorySelect { height: 40px; padding: 8px 30px 8px 12px; max-width: 205px; color: var(--text-primary); background: var(--surface-card); border: 1px solid var(--border-default); border-radius: 8px; font-size: 12px; cursor: pointer; }
+.lowStockToggle { display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 40px; padding: 8px 12px; border: 1px solid var(--border-default); border-radius: 8px; background: var(--surface-card); color: var(--text-secondary); font-size: 12px; font-weight: 500; cursor: pointer; white-space: nowrap; }
+.lowStockToggle span { font: 10px var(--font-mono); padding: 2px 4px; border-radius: 3px; background: var(--surface-subtle); }
+.activeLowStock { color: var(--warning-ink); border-color: var(--warning-border); background: var(--warning-bg); }
+.activeLowStock span { background: var(--surface-card); }
+.viewModes { display: flex; gap: 3px; padding: 3px; border: 1px solid var(--border-default); background: var(--surface-subtle); border-radius: 7px; }
+.viewModes button { min-height: 28px; display: flex; gap: 6px; align-items: center; justify-content: center; padding: 5px 9px; color: var(--text-secondary); background: transparent; border: 1px solid transparent; border-radius: 4px; font-size: 11px; font-weight: 500; cursor: pointer; }
+.viewModes .activeView { background: var(--surface-card); color: var(--text-primary); border-color: var(--border-default); box-shadow: 0 1px 2px #0f172a08; }
+@media (max-width: 1100px) { .kpis { gap: 12px; } .kpi { padding: 16px; } .toolbar { flex-wrap: wrap; } .search { flex-basis: 40%; } .lowStockCaption > span { display: none; } }
+@media (max-width: 760px) { .kpis { grid-template-columns: 1fr 1fr; } .kpiValue { font-size: 27px; } .valuation { font-size: 24px; } .toolbar { padding: 16px; gap: 10px; } .search { flex-basis: 100%; } .categorySelect { flex: 1; max-width: none; min-width: 125px; } .lowStockToggle { padding-inline: 9px; } .lowStockToggle span { display: none; } .toolbar > button:last-child { min-width: 0; padding: 8px 11px; font-size: 12px; } }
+@media (max-width: 400px) { .kpi { padding: 14px; } .kpiTop { font-size: 11px; min-height: 27px; } .kpi .marginTag { display: none; } .viewModes span { display: none; } }
